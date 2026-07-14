@@ -1,4 +1,4 @@
-﻿# MemGuard â€” an instrumented memory allocator in C
+# MemGuard - an instrumented memory allocator in C
 
 A from-scratch implementation of `malloc` / `free` / `calloc` / `realloc`
 over a fixed 1 MB memory pool, with the debugging powers of tools like
@@ -32,7 +32,7 @@ bin\demo_fragmentation.exe    fragmentation made visible, then coalesced away
 
 ## How it works
 
-The heap is one static byte array. Every block â€” allocated or free â€”
+The heap is one static byte array. Every block, allocated or free,
 begins with a header, and all blocks are linked in **one doubly-linked
 list ordered by address**, so list neighbours are also physical
 neighbours in memory. That single invariant makes coalescing trivial.
@@ -49,25 +49,24 @@ neighbours in memory. That single invariant makes coalescing trivial.
 
 - **`mg_malloc(n)`** walks the list for a free block (first- or
   best-fit), **splits** it if the remainder is usable, stamps the
-  header with `MAGIC_ALLOC` + `__FILE__`/`__LINE__`, writes the rear
-  canary, returns the payload pointer.
+  header with `MAGIC_ALLOC` plus `__FILE__`/`__LINE__`, writes the rear
+  canary, and returns the payload pointer.
 - **`mg_free(p)`** steps back from the payload to the header and
   validates everything: pointer in range, magic is `ALLOC` (a `FREE`
-  magic here = double free), canaries intact (else overflow/underflow
-  report). Then it marks the block free and **coalesces** with either
-  physical neighbour that is also free.
+  magic here means double free), canaries intact (else an overflow or
+  underflow report). Then it marks the block free and **coalesces**
+  with either physical neighbour that is also free.
 - **Alignment**: headers are padded to 16 bytes and all regions are
-  16-byte multiples, so every payload is 16-byte aligned (same
+  16-byte multiples, so every payload is 16-byte aligned (the same
   guarantee as the system malloc).
 
-## Known limitations (by design, and I can defend each)
+## Known limitations (by design)
 
-- **Not thread-safe** â€” one global heap, no locking. Fix: one mutex
+- **Not thread-safe**: one global heap, no locking. Fix: one mutex
   around the list, or per-thread arenas like real allocators.
-- **O(n) allocation** â€” list walk. Real allocators use segregated
+- **O(n) allocation**: list walk. Real allocators use segregated
   free lists (bins by size) for O(1) common cases.
-- **Fixed pool** â€” no `sbrk`/`VirtualAlloc` growth. Deliberate: a
+- **Fixed pool**: no `sbrk`/`VirtualAlloc` growth. Deliberate: a
   fixed pool is exactly how embedded/firmware allocators work.
 - Detection happens at `free`/`mg_check_all` time, not the instant of
-  the overflow (that needs MMU page tricks Ã  la ASan).
-
+  the overflow (that needs MMU page tricks like ASan uses).
