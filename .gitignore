@@ -1,0 +1,7 @@
+# build output
+bin/
+*.o
+*.exe
+
+# private notes - do not publish
+STUDY_GUIDE.md
